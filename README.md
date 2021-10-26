@@ -1,7 +1,10 @@
+# Accessibility Linter Example Frontend
 
-# accessibility-linter-example-frontend
+Created to support a platform demo presentation
 
-This is a placeholder README.md for a new repository
+This repository contains an example of how to use https://github.com/hmrc/sbt-accessibility-linter
+
+Changes that introduce the linter: https://github.com/hmrc/accessibility-linter-example-frontend/pull/1/files
 
 ### License
 
