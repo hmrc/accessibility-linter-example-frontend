@@ -1,0 +1,8 @@
+@this(layout: Layout)
+
+@()(implicit request: Request[_], messages: Messages)
+
+@layout(pageTitle = Some("accessibility-linter-example-frontend")) {
+    <h1 class="govuk-heading-xl">accessibility-linter-example-frontend</h1>
+    <p class="govuk-body">@{messages("service.text")}</p>
+}
