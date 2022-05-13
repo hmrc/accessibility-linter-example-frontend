@@ -10,3 +10,5 @@ addSbtPlugin("com.typesafe.play" % "sbt-plugin"         % "2.8.7")
 addSbtPlugin("com.typesafe.sbt"  % "sbt-gzip"           % "1.0.2")
 addSbtPlugin("org.irundaia.sbt"  % "sbt-sassify"        % "1.5.1")
 addSbtPlugin("org.scalameta"     % "sbt-scalafmt"       % "2.4.3")
+
+addSbtPlugin("uk.gov.hmrc" % "sbt-accessibility-linter" % "0.21.0")
