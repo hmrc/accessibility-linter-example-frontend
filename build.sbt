@@ -1,3 +1,5 @@
+import sbt.Tests
+import uk.gov.hmrc.AccessibilityLinterPlugin.autoImport.A11yTest
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
@@ -14,12 +16,13 @@ lazy val microservice = Project(appName, file("."))
     pipelineStages in Assets := Seq(gzip),
     // ***************
     // Use the silencer plugin to suppress warnings
-    scalacOptions += "-P:silencer:pathFilters=routes",
+    scalacOptions += "-P:silencer:pathFilters=routes;views",
     libraryDependencies ++= Seq(
       compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
       "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
-    )
+    ),
     // ***************
+    A11yTest / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-C", "reporters.HtmlReporter")
   )
   .settings(publishingSettings: _*)
   .configs(IntegrationTest)

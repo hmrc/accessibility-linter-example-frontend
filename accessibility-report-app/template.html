@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Accessibility Test Report</title>
+
+    <link rel="stylesheet" type="text/css" href="template.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/plug-ins/1.12.1/features/searchHighlight/dataTables.searchHighlight.css"/>
+    <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.12.1/css/dataTables.jqueryui.min.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.2.3/css/buttons.dataTables.min.css"/>
+
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.3/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.3/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.3/js/buttons.colVis.min.js"></script>
+    <script src="https://cdn.datatables.net/1.12.1/js/dataTables.jqueryui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/json2html/2.1.0/json2html.min.js"></script>
+    <script type="text/javascript" src="https://bartaz.github.io/sandbox.js/jquery.highlight.js"></script>
+    <script src="https://cdn.datatables.net/plug-ins/1.12.1/features/searchHighlight/dataTables.searchHighlight.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/fixedcolumns/4.1.0/js/dataTables.fixedColumns.min.js"></script>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Accessibility Test Report</h1>
+    </div>
+    <table id="violations" class="display compact">
+        <thead>
+        <tr>
+            <th rowspan="2"></th>
+            <th colspan="2">Violations</th>
+            <th colspan="3"></th>
+            <th colspan="4">Snippets</th>
+        </tr>
+        <tr>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+        </thead>
+    </table>
+
+    <script>
+        const queryString = window.location.search;
+
+        const urlParams = new URLSearchParams(queryString);
+
+        const fixedString = (string) => string.replace(/[^\x00-\x7F]/g, "");
+
+        const escapeHTML = str => str.replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag]));
+
+        const getUrlParam = (id) => {
+            const val = urlParams.get(id);
+            return val === null ? "" : val;
+        }
+
+        function syntaxHighlight(json) {
+            if (typeof json != 'string') {
+                json = JSON.stringify(json, undefined, 2);
+            }
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'key';
+                    } else {
+                        cls = 'string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        $(document).ready(function () {
+            $.getJSON("./test-json/combined.json", function(json) {
+                let tableSel = $('#violations');
+                let table = tableSel.DataTable({
+                    "data": json.violations,
+                    "order": [[1, 'asc']],
+                    "pageLength": 5,
+                    "searchHighlight": true,
+                    "stripeClasses":[],
+                    "oSearch": { "sSearch": getUrlParam("search") },
+                    "lengthMenu": [ 5, 10, 25, 50, 100 ],
+                    "columnDefs": [
+                        { width: '5%', targets: [2,3,4] },
+                        {
+                            targets: 0,
+                            searchable: true,
+                            visible: false
+                        }
+                    ],
+                    "columns": [
+                        { "data": "uuid" },
+                        { "title": "Test Suite Name", "data": "testSuiteName" },
+                        { "title": "Linter", "data": "linter", render: function(datum, type, row) {
+                                return row.linter.toUpperCase();
+                            }
+                        },
+                        { "title": "Alert Level", "data": "alertLevel", render: function(datum, type, row) {
+                                return row.alertLevel === "INFO" ?
+                                    '<div class="status green">' + row.alertLevel + '</div>' :
+                                    '<div class="status red">' + row.alertLevel + '</div>';
+                            }
+                        },
+                        { "title": "Help URL", "data": "helpUrl", render: function(datum, type, row) {
+                                return row.helpUrl === "UNDEFINED" ?
+                                    "NONE" :
+                                    '<a href="' + row.helpUrl +'" target="_blank">LINK</a>';
+                            }
+                        },
+                        { "title": "CSS Selector", "data": "cssSelector", render: function(datum, type, row) {
+                                return '<pre><code>' + escapeHTML(row.cssSelector) + '</code></pre>';
+                            }
+                        },
+                        { "title": "Description and HTML", "data": "snippet", render: function(datum, type, row) {
+                                return '<pre class="description">' + fixedString(row.description) + '</pre>'
+                                    + '<pre><code>' + escapeHTML(row.snippet.trim()) + '</code></pre>';
+                            }
+                        },
+                    ],
+                    dom: 'lBfrtip',
+                    buttons: [
+                        'colvis',
+                        {
+                            extend: 'copyHtml5',
+                            exportOptions: {
+                                columns: ':visible'
+                            }
+                        },
+                        {
+                            extend: 'excelHtml5',
+                            exportOptions: {
+                                columns: ':visible'
+                            }
+                        },
+                        {
+                            extend: 'pdfHtml5',
+                            exportOptions: {
+                                columns: ':visible'
+                            }
+                        },
+                        {
+                            text: 'JSON',
+                            action: function ( e, dt, node, config ) {
+                                let myWindow = window.open("", "Violations Json", "width=" + screen.width + ",height=" + screen.height);
+
+                                myWindow.document.write('<html lang="en"><head><title>Json</title><link rel="stylesheet" type="text/css" href="template.css"></head><body>');
+                                myWindow.document.write('<pre class="json">' + syntaxHighlight(JSON.stringify(json, undefined, 4)) + '</pre>');
+                                myWindow.document.write('</body></html>');
+                            }
+                        }
+                    ],
+                    "sScrollY": (screen.height / 16) - 22 + "em",
+                    "bScrollCollapse": true
+                });
+
+                tableSel.on( 'mouseenter', 'tbody tr', function () {
+                    let pre = $(this).closest('tr').find('pre').addClass('highlight');
+                    console.log(pre[0]);
+                } );
+
+                tableSel.on( 'mouseleave', 'tbody tr', function () {
+                    let pre = $(this).closest('tr').find('pre').removeClass('highlight');
+                    console.log(pre[0]);
+                } );
+            });
+        });
+    </script>
+</body>
+</html>
