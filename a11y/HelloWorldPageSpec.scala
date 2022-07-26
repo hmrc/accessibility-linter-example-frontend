@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import org.scalatest.Payloads.withPayload
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -31,7 +32,7 @@ class HelloWorldPageSpec extends AnyWordSpec with Matchers with GuiceOneAppPerSu
     "pass accessibility checks" in {
       val pageHtml = pageTemplate.render(request, messages).toString()
 
-      pageHtml must passAccessibilityChecks
+      withPayload(pageHtml) { pageHtml must passAccessibilityChecks }
     }
   }
 }

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.accessibilitylinterexamplefrontend.views
 
+import org.scalatest.Payloads.withPayload
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -33,7 +34,7 @@ class HelloUniversePageSpec extends AnyWordSpec with Matchers with GuiceOneAppPe
     "pass accessibility checks" in {
       val pageHtml = pageTemplate.render(request, messages).toString()
 
-      pageHtml must passAccessibilityChecks
+      withPayload(pageHtml) { pageHtml must passAccessibilityChecks }
     }
   }
 }

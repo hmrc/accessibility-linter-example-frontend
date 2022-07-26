@@ -31,6 +31,12 @@ a[tabindex]:focus {
     border-radius: 5px;
     padding-left: 5px;
     padding-right: 5px;
+
+    white-space: pre-wrap;       /* Since CSS 2.1 */
+    white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+    white-space: -pre-wrap;      /* Opera 4-6 */
+    white-space: -o-pre-wrap;    /* Opera 7 */
+    word-wrap: break-word;       /* Internet Explorer 5.5+ */
 }
 
 pre {
@@ -38,6 +44,7 @@ pre {
     border-radius: 5px;
     padding-left: 5px;
     padding-right: 5px;
+    font-size: large;
 }
 
 .highlight {
@@ -73,6 +80,27 @@ h1 {
 
 .dt-buttons {
     margin-left: 50px;
+}
+
+.link {
+    -webkit-transition: transform .3s ease-in-out;
+    -moz-transition: transform .3s ease-in-out;
+    transition: transform .3s ease-in-out;
+    filter: invert(65%);
+}
+
+.link-container:hover .link {
+    transform: scale(1.2);
+}
+
+.info-link {
+    width:32px;
+    height:32px;
+}
+
+.help-link {
+    width:40px;
+    height:40px;
 }
 
 /*table#violations.dataTable tbody tr:hover {*/

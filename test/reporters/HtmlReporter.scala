@@ -27,6 +27,12 @@ import scala.io.Source
 import scala.reflect.io.Path.jfile2path
 
 class HtmlReporter extends Reporter {
+  val combinedJson = "combined.json"
+  val htmlTemplate = "template.html"
+  val jsonTestFolder = "test-json"
+  val staticWebFolder = "static"
+  val targetAccessibilityReportPath = "target/accessibility-report/"
+  val intellijDebuggerURL = "http://localhost:63342/accessibility-linter-example-frontend/"
 
   def md5(content: String): String = MessageDigest.getInstance("MD5").digest(content.getBytes).map(0xFF & _)
     .map { "%02x".format(_) }.foldLeft("") {_ + _}
@@ -35,9 +41,25 @@ class HtmlReporter extends Reporter {
     violationsJson.foreach { violation => {
         val uuid = (violation \ "uuid").as[String]
         val linter = (violation \ "linter").as[String]
+        val testSuiteName = (violation \ "testSuiteName").as[String]
         val description = (violation \ "description").as[String].replaceAll("\n", "").replaceAll("\r", "")
-        println(s"View ($linter) violation: $description\n" +
+
+        println(s"View ($linter) violation in $testSuiteName: $description\n" +
           s"http://localhost:63342/accessibility-linter-example-frontend/target/accessibility-report/template.html?search=$uuid")
+      }
+    }
+  }
+
+  def createTestedHtmlFiles(violationsJson: Array[JsObject]): Unit = {
+    violationsJson.foreach { violation => {
+        val testedHtml = (violation \ "testedHtml").as[String]
+        val testSuiteName = (violation \ "testSuiteName").as[String]
+
+        val htmlCode = new File(s"$targetAccessibilityReportPath$staticWebFolder/${testSuiteName}.html")
+        if(!htmlCode.exists()) {
+          htmlCode.createNewFile()
+          new PrintWriter(htmlCode.path) { write(testedHtml); close() }
+        }
       }
     }
   }
@@ -54,38 +76,37 @@ class HtmlReporter extends Reporter {
 
     import sys.process._
 
-    val combinedJson = "combined.json"
-    val htmlTemplate = "template.html"
-    val jsonTestFolder = "test-json"
-    val targetAccessibilityReportPath = "target/accessibility-report/"
-    val intellijDebuggerURL = "http://localhost:63342/accessibility-linter-example-frontend/"
-
     event match {
       case _:RunStarting =>
         s"cp -r accessibility-report-app/. $targetAccessibilityReportPath" !
       case _:RunCompleted =>
-        s"cp -r target/test-json/. $targetAccessibilityReportPath$jsonTestFolder" !
+        s"cp -r target/$jsonTestFolder/. $targetAccessibilityReportPath$staticWebFolder" !
 
-        val directory = new File(s"$targetAccessibilityReportPath$jsonTestFolder")
+        val directory = new File(s"$targetAccessibilityReportPath$staticWebFolder")
 
-        val accessibilityViolations: Seq[JsValue] = directory.listFiles().flatMap((f: File) => {
+        val accessibilityViolations: Seq[JsObject] = directory.listFiles().flatMap((f: File) => {
           Json.parse(fileContent(f)) \\ "violations"
-        }).foldLeft(Seq.empty[JsValue])((arr, a) => arr ++ a.as[List[JsValue]].map(b => b))
+        }).foldLeft(Seq.empty[JsObject])((arr, a) => arr ++ a.as[List[JsObject]].map(b => b))
 
-        val templateJson = new File(s"$targetAccessibilityReportPath$jsonTestFolder/$combinedJson")
+        val templateJson = new File(s"$targetAccessibilityReportPath$staticWebFolder/$combinedJson")
         templateJson.createFile()
         val allViolationsJson = Json.obj("violations" -> accessibilityViolations)
         new PrintWriter(templateJson.path) { write(Json.prettyPrint(allViolationsJson)); close() }
 
+        createTestedHtmlFiles(accessibilityViolations.toArray)
+
         println(s"\nView full accessibility html test report: $intellijDebuggerURL$htmlTemplate")
       case testFailed: TestFailed =>
+        val testedHtml: String = testFailed.payload.getOrElse("").asInstanceOf[String]
         testFailed.recordedEvents.foreach(e => e.payload match {
           case Some(FailedAccessibilityChecks(_, violations)) =>
             val json = violations.map(v => {
               val uuid = md5(Json.stringify(Json.toJson(v)))
               Json.toJson(v).as[JsObject] +
                 ("testSuiteName" -> Json.toJson(testFailed.suiteName)) +
-                ("uuid" -> Json.toJson(uuid))
+                ("uuid" -> Json.toJson(uuid)) +
+                ("testedHtml" -> Json.toJson(testedHtml)) +
+                ("testedHtmlPath" -> Json.toJson(s"./$staticWebFolder/${testFailed.suiteName}.html"))
             })
 
             val directory = new File(s"target/$jsonTestFolder")

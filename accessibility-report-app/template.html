@@ -47,6 +47,7 @@
             <th></th>
             <th></th>
             <th></th>
+            <th></th>
         </tr>
         </thead>
     </table>
@@ -94,19 +95,31 @@
             });
         }
 
+        const showFurtherInfo = (id) => {
+            let text = $('#' + id).text();
+
+            let myWindow = window.open("", "Further Information", "width=" + 500 + ",height=" + 300 + ",top=150,left=100");
+
+            myWindow.document.write('<html lang="en"><head><title>Further Information</title><link rel="stylesheet" type="text/css" href="template.css"></head><body>');
+            myWindow.document.write('<pre class="description">' + text + '</pre>');
+            myWindow.document.write('</body></html>');
+        }
+
         $(document).ready(function () {
-            $.getJSON("./test-json/combined.json", function(json) {
+            $.getJSON("./static/combined.json", function(json) {
                 let tableSel = $('#violations');
-                let table = tableSel.DataTable({
+                tableSel.DataTable({
                     "data": json.violations,
                     "order": [[1, 'asc']],
                     "pageLength": 5,
+                    "colReorder": true,
                     "searchHighlight": true,
                     "stripeClasses":[],
                     "oSearch": { "sSearch": getUrlParam("search") },
                     "lengthMenu": [ 5, 10, 25, 50, 100 ],
                     "columnDefs": [
-                        { width: '5%', targets: [2,3,4] },
+                        { width: '5%', targets: [2,3,4,5] },
+                        {"className": "dt-center", "targets": [4,5]},
                         {
                             targets: 0,
                             searchable: true,
@@ -115,7 +128,10 @@
                     ],
                     "columns": [
                         { "data": "uuid" },
-                        { "title": "Test Suite Name", "data": "testSuiteName" },
+                        { "title": "Test Suite Name", "data": "testSuiteName", render: function(datum, type, row) {
+                                return '<a href="' + row.testedHtmlPath + '" target="_blank">' + row.testSuiteName + '</a>';
+                            }
+                        },
                         { "title": "Linter", "data": "linter", render: function(datum, type, row) {
                                 return row.linter.toUpperCase();
                             }
@@ -128,8 +144,19 @@
                         },
                         { "title": "Help URL", "data": "helpUrl", render: function(datum, type, row) {
                                 return row.helpUrl === "UNDEFINED" ?
-                                    "NONE" :
-                                    '<a href="' + row.helpUrl +'" target="_blank">LINK</a>';
+                                    "" :
+                                    '<a class="link-container" href="' + row.helpUrl +'" target="_blank">' +
+                                    '<img class="link help-link" src="help.png" alt="HELP"/>' +
+                                    '</a>';
+                            }
+                        },
+                        { "title": "Further Info", "data": "furtherInformation", render: function(datum, type, row) {
+                                return row.furtherInformation === undefined
+                                    ? ""
+                                    : '<a class="link-container" href="javascript:void(0)" onclick="showFurtherInfo(\'' + row.uuid + '\')">' +
+                                    '<img class="link info-link" src="info-icon.png" alt="INFO"/>' +
+                                    '<div id="' + row.uuid + '" style="display:none">' + escapeHTML(row.furtherInformation) + '</div>' +
+                                    '</a>';
                             }
                         },
                         { "title": "CSS Selector", "data": "cssSelector", render: function(datum, type, row) {
@@ -137,8 +164,10 @@
                             }
                         },
                         { "title": "Description and HTML", "data": "snippet", render: function(datum, type, row) {
-                                return '<pre class="description">' + fixedString(row.description) + '</pre>'
-                                    + '<pre><code>' + escapeHTML(row.snippet.trim()) + '</code></pre>';
+                                let conciseDescription = row.conciseDescription === undefined ? "" : '<pre class="description">' + row.conciseDescription + '</pre>';
+                                return '<pre class="description">' + fixedString(row.description) + '</pre>' +
+                                    conciseDescription +
+                                    '<pre><code>' + escapeHTML(row.snippet.trim()) + '</code></pre>';
                             }
                         },
                     ],
@@ -179,13 +208,11 @@
                 });
 
                 tableSel.on( 'mouseenter', 'tbody tr', function () {
-                    let pre = $(this).closest('tr').find('pre').addClass('highlight');
-                    console.log(pre[0]);
+                    $(this).closest('tr').find('pre').addClass('highlight');
                 } );
 
                 tableSel.on( 'mouseleave', 'tbody tr', function () {
-                    let pre = $(this).closest('tr').find('pre').removeClass('highlight');
-                    console.log(pre[0]);
+                    $(this).closest('tr').find('pre').removeClass('highlight');
                 } );
             });
         });
